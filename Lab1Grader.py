@@ -16,7 +16,7 @@ resultFile = None
 rootPath = ""
 
 # Return (testResult, avgElapseTime)
-def testing(N:int, x:int, expected:[int], processNum:int, repeatTimes:int):
+def testing(N:int, x:int, expected:[int], processNum:int, repeatTimes:int, useWhitespaceSeparator:bool):
 	
 	print("N=%d, x=%d, processNum=%d, repeatTimes=%d" % (N, x, processNum, repeatTimes))
 	
@@ -34,20 +34,29 @@ def testing(N:int, x:int, expected:[int], processNum:int, repeatTimes:int):
 	resultFileName = str(N) + ".txt"
 	with open(resultFileName, 'r') as resultFile:
 		for line in resultFile:
-			actual.append(int(line.strip()))
+			if (useWhitespaceSeparator):
+				partialStrActual = line.split(' ')
+				# print(partialStrActual)
+				for elementStr in partialStrActual:
+					isNum = re.match("\d+", elementStr)
+					if isNum:
+						actual.append(int(elementStr))
+			else:
+				# use default separator(newline)
+				actual.append(int(line.strip()))
 	
 	testResult = True
-	if (len(expected) != len(actual)):
-		print("Testing Result Incorrect: len(expected) != len(actual)")
-		testResult = False
-	else:
+	#if (len(expected) != len(actual)):
+	#	print("Testing Result Incorrect: len(expected)(=%d) != len(actual)(=%d)" % (len(expected), len(actual)))
+	#	testResult = False
+	#else:
 		
-		length = len(expected)
-		for i in range(0, length):
-			if (expected[i] != actual[i]):
-				print("Testing Result Incorrect: Line %d, expected=%d, actual=%d" % (i + 1, expected[i], actual[i]))
-				testResult = False
-				break
+	length = len(expected)
+	for i in range(0, length):
+		if (expected[i] != actual[i]):
+			print("Testing Result Incorrect: Line %d, expected=%d, actual=%d" % (i + 1, expected[i], actual[i]))
+			testResult = False
+			break
 	
 	if (not testResult):
 		return (testResult, None)
@@ -80,10 +89,7 @@ def testing(N:int, x:int, expected:[int], processNum:int, repeatTimes:int):
 	return (testResult, avgElapseTime)
 
 
-def grade(studentName:str):
-	
-	gradeFile = open("grades.txt", "a")
-	gradeFile.write(studentName + '\n')
+def grade(studentName:str, specificStudent:bool, useWhitespaceSeparator:bool):
 	
 	folderName = studentName
 	grade = 0
@@ -95,6 +101,12 @@ def grade(studentName:str):
 	netId = netId.replace("(", "")
 	netId = netId.replace(")", "")
 	print('netId found: ' + netId)
+	
+	if (specificStudent):
+		gradeFile = open("grade_{}.txt".format(netId), "w")
+	else:
+		gradeFile = open("grades.txt", "a")
+	gradeFile.write(studentName + '\n')
 	
 	# Go to submission folder
 	os.chdir(folderName)
@@ -176,7 +188,7 @@ def grade(studentName:str):
 	# Check whether result is matched
 	testResults = []
 	testingResultCommentTemp = "-5: Testing failed: N={}, x={}, p={}"
-	(t1TestResult, t1AvgElapseTime) = testing(N_1M, X, s1RefList, 1, EXECUTE_REPEAT_TIMES)
+	(t1TestResult, t1AvgElapseTime) = testing(N_1M, X, s1RefList, 1, EXECUTE_REPEAT_TIMES, useWhitespaceSeparator)
 	t1AvgElapseTimeStr = str(t1AvgElapseTime) if not(t1AvgElapseTime is None) else "None"
 	testResults.append(t1TestResult)
 	if (not t1TestResult):
@@ -184,7 +196,7 @@ def grade(studentName:str):
 	print("t1's result: testResult=%s, avgElapseTime=%s" % (str(t1TestResult), t1AvgElapseTimeStr))
 	
 	# 2. N = 1m, x = 3, p = 4
-	(t2TestResult, t2AvgElapseTime) = testing(N_1M, X, s1RefList, 4, EXECUTE_REPEAT_TIMES)
+	(t2TestResult, t2AvgElapseTime) = testing(N_1M, X, s1RefList, 4, EXECUTE_REPEAT_TIMES, useWhitespaceSeparator)
 	t2AvgElapseTimeStr = str(t2AvgElapseTime) if not(t2AvgElapseTime is None) else "None"
 	testResults.append(t2TestResult)
 	if (not t2TestResult):
@@ -192,7 +204,7 @@ def grade(studentName:str):
 	print("t2's result: testResult=%s, avgElapseTime=%s" % (str(t2TestResult), t2AvgElapseTime))
 	
 	# 3. N = 10m, x = 3, p = 1
-	(t3TestResult, t3AvgElapseTime) = testing(N_10M, X, s2RefList, 1, EXECUTE_REPEAT_TIMES)
+	(t3TestResult, t3AvgElapseTime) = testing(N_10M, X, s2RefList, 1, EXECUTE_REPEAT_TIMES, useWhitespaceSeparator)
 	t3AvgElapseTimeStr = str(t3AvgElapseTime) if not(t3AvgElapseTime is None) else "None"
 	testResults.append(t3TestResult)
 	if (not t3TestResult):
@@ -200,7 +212,7 @@ def grade(studentName:str):
 	print("t3's result: testResult=%s, avgElapseTime=%s" % (str(t3TestResult), t3AvgElapseTime))
 	
 	# 4. N = 10m, x = 3, p = 4
-	(t4TestResult, t4AvgElapseTime) = testing(N_10M, X, s2RefList, 4, EXECUTE_REPEAT_TIMES)
+	(t4TestResult, t4AvgElapseTime) = testing(N_10M, X, s2RefList, 4, EXECUTE_REPEAT_TIMES, useWhitespaceSeparator)
 	t4AvgElapseTimeStr = str(t4AvgElapseTime) if not(t4AvgElapseTime is None) else "None"
 	testResults.append(t4TestResult)
 	if (not t4TestResult):
@@ -258,11 +270,13 @@ if __name__ == "__main__":
 	parser.add_argument('--f', dest='folder', action='store', help="The name of the folder of submission")
 	parser.add_argument('--id', dest='netId', action='store', help="The NetID of the student")
 	parser.add_argument('--g', dest='genRef', action='store', help="Whether need to generate ref result? True or False")
+	parser.add_argument('--ss', dest='wsSeperator', action='store', help="Use whitespace as a separator? True or False")
 	args = parser.parse_args()
 	
 	folderName = args.folder
 	netId = args.netId
 	isGenRef = True if (args.genRef == "True") else False
+	useWhitespaceSeparator = True if (args.wsSeperator == "True") else False
 	print("Params:")
 	print("Folder: %s" % folderName)
 	print("isGenRef: %s" % isGenRef)
@@ -306,10 +320,10 @@ if __name__ == "__main__":
 		dir_list = os.listdir()
 		for f in dir_list:
 			if (path.isdir(f)):
-				grade(f)
+				grade(f, False, useWhitespaceSeparator)
 				os.chdir(rootPath)
 	else:
-		grade(folderName)
+		grade(folderName, True, useWhitespaceSeparator)
 		os.chdir(rootPath)
 		
 	print("Done!")
